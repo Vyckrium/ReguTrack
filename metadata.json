@@ -1,0 +1,5 @@
+{
+  "name": "ReguTrack Local",
+  "description": "Une application locale et sécurisée de suivi des renouvellements réglementaires (QHSE/Légal). Dispose d'un tableau de bord de surveillance, d'alertes d'expiration et de capacités d'import/export Excel.",
+  "requestFramePermissions": []
+}
