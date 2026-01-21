@@ -1,20 +1,33 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ReguTrack Local
 
-# Run and deploy your AI Studio app
+## Présentation
+**ReguTrack Local** est une application autonome et sécurisée dédiée au suivi des obligations réglementaires (QHSE, Maintenance, Légal). Elle permet aux gestionnaires de suivre les échéances de contrôles périodiques et de gérer les prestataires associés, le tout sans connexion serveur externe.
 
-This contains everything you need to run your app locally.
+## Guide d'Utilisation Rapide
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Q0VbMqNaUpY0fv8R-UL88Eyw1lm0OWco
+### 1. 📊 Tableau de Bord (Dashboard)
+C'est votre écran d'accueil. Il offre une vue synthétique de la conformité :
+*   **Indicateurs Visuels** :
+    *   🔴 **Rouge** : Échéance dépassée (Urgent).
+    *   🟠 **Orange** : Échéance dans moins de 90 jours (À planifier).
+    *   🟢 **Vert** : À jour.
+*   **Graphiques** : Visualisez la proportion d'équipements conformes.
 
-## Run Locally
+### 2. 🗄️ Gérer les Données
+Section principale pour l'édition de votre base de données :
+*   **Onglet Exigences** : Ajoutez vos contrôles (ex: "Vérification Extincteurs"). Renseignez la **Dernière Date** de réalisation et la **Périodicité** (en mois). L'application calcule automatiquement la prochaine date limite.
+*   **Onglet Vérificateurs** : Créez des fiches pour vos organismes de contrôle (ex: Bureau Veritas, Apave) pour les lier ensuite à vos exigences.
 
-**Prerequisites:**  Node.js
+### 3. 📥 Import / Export
+Gérez vos données en masse via Excel :
+*   **Export** : Cliquez sur "Télécharger Excel" pour obtenir une sauvegarde complète de vos données.
+*   **Import** : 
+    1.  Téléchargez le **Modèle** vierge.
+    2.  Remplissez-le avec vos données.
+    3.  Réimportez-le pour mettre à jour l'application instantanément.
 
+### 4. ⚙️ Configuration
+Affiche les paramètres techniques (simulés dans cette version locale) pour les notifications par email.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+*Cette application stocke les données localement dans votre navigateur. Aucune information n'est transmise sur internet.*
