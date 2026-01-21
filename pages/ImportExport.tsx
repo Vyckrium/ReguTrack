@@ -23,6 +23,7 @@ const ImportExport: React.FC = () => {
           'Périodicité (Mois)': req.periodicityMonths,
           'Nom Vérificateur': verifier?.name || 'Inconnu',
           'Email Vérificateur': verifier?.email || '',
+          'Téléphone Vérificateur': verifier?.phone || '',
         };
       });
 
@@ -46,6 +47,7 @@ const ImportExport: React.FC = () => {
         'Périodicité (Mois)': 12,
         'Nom Vérificateur': 'Bureau Veritas',
         'Email Vérificateur': 'contact@bv.com',
+        'Téléphone Vérificateur': '0123456789',
       },
     ];
     const ws = XLSX.utils.json_to_sheet(headers);
@@ -84,15 +86,18 @@ const ImportExport: React.FC = () => {
             // Trouver ou créer le vérificateur
             const vName = row['Nom Vérificateur'];
             const vEmail = row['Email Vérificateur'] || '';
+            const vPhone = row['Téléphone Vérificateur'] || '';
             let vId = '';
             
             if (vName) {
                 const existingV = newVerifiers.find(v => v.name.toLowerCase() === vName.toLowerCase());
                 if (existingV) {
                     vId = existingV.id;
+                    // Mise à jour optionnelle des infos manquantes
+                    if (!existingV.phone && vPhone) existingV.phone = vPhone;
                 } else {
                     vId = generateId();
-                    newVerifiers.push({ id: vId, name: vName, email: vEmail });
+                    newVerifiers.push({ id: vId, name: vName, email: vEmail, phone: vPhone });
                 }
             }
 

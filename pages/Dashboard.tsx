@@ -127,7 +127,7 @@ const Dashboard: React.FC = () => {
         {/* Graphique */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
              <h3 className="font-semibold text-gray-800 mb-4">Répartition de la conformité</h3>
-             <div className="h-64">
+             <div className="h-64 w-full" style={{ minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie

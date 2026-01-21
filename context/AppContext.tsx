@@ -5,8 +5,8 @@ const STORAGE_KEY = 'regutrack_db_v1';
 
 const initialState: AppState = {
   verifiers: [
-    { id: 'v1', name: 'Bureau Veritas', email: 'contact@bureauveritas.com' },
-    { id: 'v2', name: 'Audit Interne', email: 'interne@entreprise.com' },
+    { id: 'v1', name: 'Bureau Veritas', email: 'contact@bureauveritas.com', phone: '01 42 91 52 91' },
+    { id: 'v2', name: 'Audit Interne', email: 'interne@entreprise.com', phone: '' },
   ],
   requirements: [
     {
@@ -32,6 +32,13 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'ADD_VERIFIER':
       return { ...state, verifiers: [...state.verifiers, action.payload] };
+    case 'UPDATE_VERIFIER':
+      return {
+        ...state,
+        verifiers: state.verifiers.map((v) =>
+          v.id === action.payload.id ? action.payload : v
+        ),
+      };
     case 'DELETE_VERIFIER':
       return {
         ...state,

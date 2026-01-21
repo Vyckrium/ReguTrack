@@ -2,6 +2,7 @@ export interface Verifier {
   id: string;
   name: string;
   email: string;
+  phone: string;
 }
 
 export interface Requirement {
@@ -22,6 +23,7 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'ADD_VERIFIER'; payload: Verifier }
+  | { type: 'UPDATE_VERIFIER'; payload: Verifier }
   | { type: 'DELETE_VERIFIER'; payload: string }
   | { type: 'ADD_REQUIREMENT'; payload: Requirement }
   | { type: 'UPDATE_REQUIREMENT'; payload: Requirement }
