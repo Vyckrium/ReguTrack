@@ -1,12 +1,15 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { calculateNextDueDate, getRequirementStatus } from '../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock, Database, Percent, Hash } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Database, Percent, Hash, X, FileText, Calendar, User, Phone, Mail, Edit } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { state } = useApp();
+  const navigate = useNavigate();
   const [showPercentage, setShowPercentage] = useState(false);
+  const [selectedReq, setSelectedReq] = useState<any | null>(null);
 
   const data = useMemo(() => {
     return state.requirements.map((req) => {
@@ -19,13 +22,15 @@ const Dashboard: React.FC = () => {
           nextDueDate = calculateNextDueDate(req.lastDate, req.periodicityMonths);
       }
       
-      // On passe la date brute (si périodique) ou n'importe quoi si continu car le type prime
       const calculationDate = req.trackingType === 'CONTINUOUS' ? '' : nextDueDate;
       const status = getRequirementStatus(calculationDate, req.trackingType);
 
       return {
         ...req,
         verifierName: verifier ? verifier.name : 'Inconnu',
+        verifierEmail: verifier?.email,
+        verifierPhone: verifier?.phone,
+        verifierIsInternal: verifier?.isInternal,
         nextDueDate,
         status,
       };
@@ -47,9 +52,150 @@ const Dashboard: React.FC = () => {
     { name: 'Conforme', value: stats.green, color: '#22c55e' },
   ];
 
+  const handleRowClick = (req: any) => {
+      setSelectedReq(req);
+  };
+
+  const handleEditClick = () => {
+      if (selectedReq) {
+          navigate('/manage', { state: { editReqId: selectedReq.id } });
+      }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <h2 className="text-2xl font-bold text-gray-800">Tableau de Bord</h2>
+
+      {/* --- MODALE DÉTAILS --- */}
+      {selectedReq && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                {/* Header */}
+                <div className={`p-6 border-b flex justify-between items-start ${
+                    selectedReq.status === 'RED' ? 'bg-red-50 border-red-100' :
+                    selectedReq.status === 'ORANGE' ? 'bg-orange-50 border-orange-100' : 'bg-green-50 border-green-100'
+                }`}>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            {selectedReq.status === 'RED' && <AlertTriangle className="text-red-600" size={20}/>}
+                            {selectedReq.status === 'ORANGE' && <Clock className="text-orange-600" size={20}/>}
+                            {selectedReq.status === 'GREEN' && <CheckCircle className="text-green-600" size={20}/>}
+                            <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                selectedReq.status === 'RED' ? 'bg-red-200 text-red-800' :
+                                selectedReq.status === 'ORANGE' ? 'bg-orange-200 text-orange-800' : 'bg-green-200 text-green-800'
+                            }`}>
+                                {selectedReq.status === 'RED' ? 'Non Conforme' : selectedReq.status === 'ORANGE' ? 'À Planifier' : 'Conforme'}
+                            </span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900">{selectedReq.designation}</h3>
+                    </div>
+                    <button 
+                        onClick={() => setSelectedReq(null)}
+                        className="text-gray-400 hover:text-gray-600 bg-white/50 hover:bg-white rounded-full p-1 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto space-y-6">
+                    {/* Description */}
+                    <div className="space-y-2">
+                        <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                            <FileText size={16}/> Description
+                        </h4>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 text-gray-700 leading-relaxed">
+                            {selectedReq.description || "Aucune description fournie."}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Dates */}
+                        <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <Calendar size={16}/> Planning
+                            </h4>
+                            <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2 shadow-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600 text-sm">Type de suivi :</span>
+                                    <span className="font-medium text-gray-900">
+                                        {selectedReq.trackingType === 'CONTINUOUS' ? "Au fil de l'eau" : "Périodique"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600 text-sm">Dernière vérif. :</span>
+                                    <span className="font-medium text-gray-900">{selectedReq.lastDate}</span>
+                                </div>
+                                {selectedReq.trackingType === 'PERIODIC' && (
+                                    <>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600 text-sm">Périodicité :</span>
+                                            <span className="font-medium text-gray-900">{selectedReq.periodicityMonths} mois</span>
+                                        </div>
+                                        <div className="flex justify-between pt-2 border-t border-gray-100">
+                                            <span className="text-gray-600 text-sm font-semibold">Prochaine échéance :</span>
+                                            <span className={`font-bold ${
+                                                selectedReq.status === 'RED' ? 'text-red-600' : 'text-gray-900'
+                                            }`}>
+                                                {selectedReq.nextDueDate}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Contact */}
+                        <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                <User size={16}/> Vérificateur
+                            </h4>
+                            <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-3 shadow-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-bold text-gray-900">{selectedReq.verifierName}</span>
+                                    {selectedReq.verifierIsInternal && (
+                                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Interne</span>
+                                    )}
+                                </div>
+                                {selectedReq.verifierEmail && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <Mail size={14} className="text-gray-400"/>
+                                        <a href={`mailto:${selectedReq.verifierEmail}`} className="hover:text-blue-600 hover:underline">
+                                            {selectedReq.verifierEmail}
+                                        </a>
+                                    </div>
+                                )}
+                                {selectedReq.verifierPhone && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <Phone size={14} className="text-gray-400"/>
+                                        <span>{selectedReq.verifierPhone}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+                    <button 
+                        onClick={() => setSelectedReq(null)}
+                        className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                    >
+                        Fermer
+                    </button>
+                    <button 
+                        onClick={handleEditClick}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors font-medium flex items-center gap-2"
+                    >
+                        <Edit size={16} />
+                        Modifier l'exigence
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
 
       {/* Cartes de statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -109,7 +255,12 @@ const Dashboard: React.FC = () => {
                   </tr>
                 ) : (
                   data.map((row) => (
-                    <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
+                    <tr 
+                        key={row.id} 
+                        onClick={() => handleRowClick(row)}
+                        className="bg-white border-b hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                        title="Cliquez pour voir les détails"
+                    >
                       <td className="px-6 py-4 font-medium text-gray-900">{row.designation}</td>
                       <td className="px-6 py-4">{row.verifierName}</td>
                       <td className="px-6 py-4">{row.lastDate}</td>

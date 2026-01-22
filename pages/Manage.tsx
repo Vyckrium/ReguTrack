@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { generateId } from '../utils';
 import { Requirement, Verifier, TrackingType } from '../types';
@@ -6,6 +7,8 @@ import { Plus, Trash2, Edit2, X, Save, AlertTriangle, Info } from 'lucide-react'
 
 const Manage: React.FC = () => {
   const { state, dispatch } = useApp();
+  const location = useLocation();
+  
   const [activeTab, setActiveTab] = useState<'requirements' | 'verifiers'>('requirements');
   
   // États d'édition distincts pour éviter les conflits lors du changement d'onglet
@@ -32,6 +35,28 @@ const Manage: React.FC = () => {
     phone: '',
     isInternal: false,
   });
+
+  // --- LOGIQUE REDIRECTION DASHBOARD ---
+  // Surveille si on arrive depuis le Dashboard avec une demande d'édition
+  useEffect(() => {
+    if (location.state && location.state.editReqId) {
+        // On s'assure d'être sur le bon onglet
+        setActiveTab('requirements');
+        
+        // On cherche l'exigence
+        const reqToEdit = state.requirements.find(r => r.id === location.state.editReqId);
+        if (reqToEdit) {
+            // On déclenche l'édition
+            startEditReq(reqToEdit);
+            
+            // Scroll vers le formulaire pour l'UX
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Nettoyage de l'historique pour ne pas ré-ouvrir si on rafraîchit
+        window.history.replaceState({}, document.title);
+    }
+  }, [location.state, state.requirements]);
 
   // Gestion des onglets : réinitialise les modes d'édition
   const handleTabChange = (tab: 'requirements' | 'verifiers') => {
