@@ -1,4 +1,4 @@
-import { Requirement, Status } from './types';
+import { Requirement, Status, TrackingType } from './types';
 
 // Aide pour ajouter des mois à une chaîne de date
 export const addMonthsToDate = (dateStr: string, months: number): Date => {
@@ -14,7 +14,11 @@ export const calculateNextDueDate = (lastDate: string, periodicity: number): str
 };
 
 // Aide pour déterminer le statut basé sur la date d'échéance
-export const getRequirementStatus = (nextDueDateStr: string): Status => {
+export const getRequirementStatus = (nextDueDateStr: string, trackingType: TrackingType = 'PERIODIC'): Status => {
+  if (trackingType === 'CONTINUOUS') {
+    return 'GREEN'; // Toujours valide pour le continu
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   

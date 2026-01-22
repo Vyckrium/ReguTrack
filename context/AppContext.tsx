@@ -5,8 +5,8 @@ const STORAGE_KEY = 'regutrack_db_v1';
 
 const initialState: AppState = {
   verifiers: [
-    { id: 'v1', name: 'Bureau Veritas', email: 'contact@bureauveritas.com', phone: '01 42 91 52 91' },
-    { id: 'v2', name: 'Audit Interne', email: 'interne@entreprise.com', phone: '' },
+    { id: 'v1', name: 'Bureau Veritas', email: 'contact@bureauveritas.com', phone: '01 42 91 52 91', isInternal: false },
+    { id: 'v2', name: 'Audit Interne', email: 'interne@entreprise.com', phone: '', isInternal: true },
   ],
   requirements: [
     {
@@ -16,6 +16,7 @@ const initialState: AppState = {
       lastDate: '2023-05-15',
       periodicityMonths: 12,
       verifierId: 'v1',
+      trackingType: 'PERIODIC',
     },
     {
       id: 'r2',
@@ -24,6 +25,16 @@ const initialState: AppState = {
       lastDate: '2024-02-01',
       periodicityMonths: 1,
       verifierId: 'v2',
+      trackingType: 'PERIODIC',
+    },
+    {
+      id: 'r3',
+      designation: 'Rondes de sécurité',
+      description: 'Surveillance quotidienne des issues de secours.',
+      lastDate: '2024-01-01',
+      periodicityMonths: 0,
+      verifierId: 'v2',
+      trackingType: 'CONTINUOUS',
     },
   ],
 };

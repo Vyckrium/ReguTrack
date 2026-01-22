@@ -1,18 +1,28 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { calculateNextDueDate, getRequirementStatus } from '../utils';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { Database } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { AlertTriangle, CheckCircle, Clock, Database, Percent, Hash } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { state } = useApp();
+  const [showPercentage, setShowPercentage] = useState(false);
 
   const data = useMemo(() => {
     return state.requirements.map((req) => {
       const verifier = state.verifiers.find((v) => v.id === req.verifierId);
-      const nextDueDate = calculateNextDueDate(req.lastDate, req.periodicityMonths);
-      const status = getRequirementStatus(nextDueDate);
+      
+      let nextDueDate = '';
+      if (req.trackingType === 'CONTINUOUS') {
+          nextDueDate = 'Continu';
+      } else {
+          nextDueDate = calculateNextDueDate(req.lastDate, req.periodicityMonths);
+      }
+      
+      // On passe la date brute (si périodique) ou n'importe quoi si continu car le type prime
+      const calculationDate = req.trackingType === 'CONTINUOUS' ? '' : nextDueDate;
+      const status = getRequirementStatus(calculationDate, req.trackingType);
+
       return {
         ...req,
         verifierName: verifier ? verifier.name : 'Inconnu',
@@ -103,7 +113,13 @@ const Dashboard: React.FC = () => {
                       <td className="px-6 py-4 font-medium text-gray-900">{row.designation}</td>
                       <td className="px-6 py-4">{row.verifierName}</td>
                       <td className="px-6 py-4">{row.lastDate}</td>
-                      <td className="px-6 py-4 font-mono">{row.nextDueDate}</td>
+                      <td className="px-6 py-4 font-mono text-gray-600">
+                          {row.trackingType === 'CONTINUOUS' ? (
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">Au fil de l'eau</span>
+                          ) : (
+                              row.nextDueDate
+                          )}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <span
                           className={`inline-block w-4 h-4 rounded-full ${
@@ -124,29 +140,85 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Graphique */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-             <h3 className="font-semibold text-gray-800 mb-4">Répartition de la conformité</h3>
-             <div className="h-64 w-full" style={{ minWidth: 0 }}>
+        {/* Graphique avec Légende Personnalisée */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col h-fit">
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Répartition</h3>
+                
+                {/* Toggle Switch */}
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                    <button 
+                        onClick={() => setShowPercentage(false)}
+                        className={`p-1.5 rounded-md transition-all ${!showPercentage ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        title="Afficher les nombres"
+                    >
+                        <Hash size={16} />
+                    </button>
+                    <button 
+                        onClick={() => setShowPercentage(true)}
+                        className={`p-1.5 rounded-md transition-all ${showPercentage ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        title="Afficher les pourcentages"
+                    >
+                        <Percent size={16} />
+                    </button>
+                </div>
+             </div>
+             
+             {/* Zone Graphique */}
+             <div className="h-72 w-full" style={{ minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                         <Pie
                             data={chartData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
+                            innerRadius={70}
+                            outerRadius={100}
                             paddingAngle={5}
                             dataKey="value"
+                            // Suppression des labels sur le graphique pour éviter le chevauchement
                         >
                             {chartData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                         </Pie>
-                        <Tooltip />
-                        <Legend />
+                        <Tooltip 
+                            formatter={(value: number, name: string) => {
+                                if (showPercentage && stats.total > 0) {
+                                    return [`${((value / stats.total) * 100).toFixed(1)}%`, name];
+                                }
+                                return [value, name];
+                            }}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        />
                     </PieChart>
                 </ResponsiveContainer>
+             </div>
+
+             {/* Légende Personnalisée en dessous */}
+             <div className="mt-2 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4">
+                {chartData.map((item, index) => {
+                    const valueDisplay = showPercentage 
+                        ? (stats.total > 0 ? `${((item.value / stats.total) * 100).toFixed(1)}%` : '0%')
+                        : item.value;
+
+                    return (
+                        <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></div>
+                                <span className="text-gray-600 font-medium text-sm">{item.name}</span>
+                            </div>
+                            <span className={`font-bold text-lg ${item.value > 0 ? 'text-gray-800' : 'text-gray-400'}`}>
+                                {valueDisplay}
+                            </span>
+                        </div>
+                    );
+                })}
+                {/* Total */}
+                <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-50">
+                     <span className="text-gray-400 text-xs uppercase font-semibold">Total</span>
+                     <span className="text-gray-400 text-xs font-semibold">{stats.total}</span>
+                </div>
              </div>
         </div>
       </div>

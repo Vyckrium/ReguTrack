@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { generateId } from '../utils';
-import { Requirement, Verifier } from '../types';
-import { Plus, Trash2, Edit2, X, Save, AlertTriangle } from 'lucide-react';
+import { Requirement, Verifier, TrackingType } from '../types';
+import { Plus, Trash2, Edit2, X, Save, AlertTriangle, Info } from 'lucide-react';
 
 const Manage: React.FC = () => {
   const { state, dispatch } = useApp();
@@ -22,6 +22,7 @@ const Manage: React.FC = () => {
     lastDate: '',
     periodicityMonths: 12,
     verifierId: '',
+    trackingType: 'PERIODIC',
   });
 
   // État du formulaire Vérificateur
@@ -29,6 +30,7 @@ const Manage: React.FC = () => {
     name: '',
     email: '',
     phone: '',
+    isInternal: false,
   });
 
   // Gestion des onglets : réinitialise les modes d'édition
@@ -40,16 +42,38 @@ const Manage: React.FC = () => {
 
   // --- LOGIQUE EXIGENCES ---
 
+  // Effet pour vérifier la cohérence du type de suivi
+  useEffect(() => {
+      const selectedVerifier = state.verifiers.find(v => v.id === reqForm.verifierId);
+      // Si le vérificateur sélectionné n'est PAS interne, on force le mode Périodique
+      if (selectedVerifier && !selectedVerifier.isInternal && reqForm.trackingType === 'CONTINUOUS') {
+          setReqForm(prev => ({ ...prev, trackingType: 'PERIODIC' }));
+      }
+  }, [reqForm.verifierId, reqForm.trackingType, state.verifiers]);
+
   const handleReqSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanForm = {
+        ...reqForm,
+        // Si continu, on force la périodicité à 0 pour la propreté des données
+        periodicityMonths: reqForm.trackingType === 'CONTINUOUS' ? 0 : reqForm.periodicityMonths
+    };
+
     if (editingReqId) {
-        dispatch({ type: 'UPDATE_REQUIREMENT', payload: { ...reqForm, id: editingReqId } });
+        dispatch({ type: 'UPDATE_REQUIREMENT', payload: { ...cleanForm, id: editingReqId } });
         setEditingReqId(null);
     } else {
-        dispatch({ type: 'ADD_REQUIREMENT', payload: { ...reqForm, id: generateId() } });
+        dispatch({ type: 'ADD_REQUIREMENT', payload: { ...cleanForm, id: generateId() } });
     }
     // Réinitialisation
-    setReqForm({ designation: '', description: '', lastDate: '', periodicityMonths: 12, verifierId: state.verifiers[0]?.id || '' });
+    setReqForm({ 
+        designation: '', 
+        description: '', 
+        lastDate: '', 
+        periodicityMonths: 12, 
+        verifierId: state.verifiers[0]?.id || '',
+        trackingType: 'PERIODIC'
+    });
   };
 
   const startEditReq = (req: Requirement) => {
@@ -59,13 +83,21 @@ const Manage: React.FC = () => {
           description: req.description,
           lastDate: req.lastDate,
           periodicityMonths: req.periodicityMonths,
-          verifierId: req.verifierId
+          verifierId: req.verifierId,
+          trackingType: req.trackingType || 'PERIODIC'
       });
   };
 
   const cancelEditReq = () => {
       setEditingReqId(null);
-      setReqForm({ designation: '', description: '', lastDate: '', periodicityMonths: 12, verifierId: '' });
+      setReqForm({ 
+          designation: '', 
+          description: '', 
+          lastDate: '', 
+          periodicityMonths: 12, 
+          verifierId: '', 
+          trackingType: 'PERIODIC' 
+        });
   };
 
   // --- LOGIQUE VÉRIFICATEURS ---
@@ -78,7 +110,7 @@ const Manage: React.FC = () => {
     } else {
         dispatch({ type: 'ADD_VERIFIER', payload: { ...verForm, id: generateId() } });
     }
-    setVerForm({ name: '', email: '', phone: '' });
+    setVerForm({ name: '', email: '', phone: '', isInternal: false });
   };
 
   const startEditVer = (ver: Verifier) => {
@@ -87,12 +119,13 @@ const Manage: React.FC = () => {
           name: ver.name,
           email: ver.email,
           phone: ver.phone || '',
+          isInternal: ver.isInternal || false,
       });
   };
 
   const cancelEditVer = () => {
       setEditingVerId(null);
-      setVerForm({ name: '', email: '', phone: '' });
+      setVerForm({ name: '', email: '', phone: '', isInternal: false });
   };
 
   // --- LOGIQUE SUPPRESSION ---
@@ -106,6 +139,10 @@ const Manage: React.FC = () => {
           dispatch({ type: 'DELETE_VERIFIER', payload: deleteConfirm.id });
       }
       setDeleteConfirm(null);
+  };
+
+  const isVerifierInternal = (id: string) => {
+      return state.verifiers.find(v => v.id === id)?.isInternal || false;
   };
 
   return (
@@ -178,38 +215,7 @@ const Manage: React.FC = () => {
                   onChange={(e) => setReqForm({ ...reqForm, designation: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description (Légale)</label>
-                <textarea
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                  rows={3}
-                  value={reqForm.description}
-                  onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Dernière Date</label>
-                    <input
-                    type="date"
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                    value={reqForm.lastDate}
-                    onChange={(e) => setReqForm({ ...reqForm, lastDate: e.target.value })}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Périodicité (Mois)</label>
-                    <input
-                    type="number"
-                    required
-                    min={1}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                    value={reqForm.periodicityMonths}
-                    onChange={(e) => setReqForm({ ...reqForm, periodicityMonths: parseInt(e.target.value) })}
-                    />
-                </div>
-              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700">Vérificateur</label>
                 <select
@@ -220,10 +226,86 @@ const Manage: React.FC = () => {
                 >
                   <option value="">Sélectionner Vérificateur...</option>
                   {state.verifiers.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
+                    <option key={v.id} value={v.id}>
+                        {v.name} {v.isInternal ? '(Interne)' : ''}
+                    </option>
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type de Suivi</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setReqForm({ ...reqForm, trackingType: 'PERIODIC' })}
+                        className={`py-2 px-3 text-sm rounded-lg border text-center transition-colors ${
+                            reqForm.trackingType === 'PERIODIC' 
+                            ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' 
+                            : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                        }`}
+                    >
+                        Périodique
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setReqForm({ ...reqForm, trackingType: 'CONTINUOUS' })}
+                        disabled={!isVerifierInternal(reqForm.verifierId)}
+                        className={`py-2 px-3 text-sm rounded-lg border text-center transition-colors ${
+                            reqForm.trackingType === 'CONTINUOUS' 
+                            ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' 
+                            : 'bg-white border-gray-300 text-gray-600'
+                        } ${!isVerifierInternal(reqForm.verifierId) ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:bg-gray-50'}`}
+                        title={!isVerifierInternal(reqForm.verifierId) ? "Disponible uniquement pour les vérificateurs internes" : ""}
+                    >
+                        Au fil de l'eau
+                    </button>
+                </div>
+                {!isVerifierInternal(reqForm.verifierId) && reqForm.verifierId !== '' && (
+                     <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                         <Info size={12}/> "Au fil de l'eau" nécessite un vérificateur interne.
+                     </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description (Légale)</label>
+                <textarea
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                  rows={3}
+                  value={reqForm.description}
+                  onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                        {reqForm.trackingType === 'CONTINUOUS' ? 'Date de début / Création' : 'Dernière Date'}
+                    </label>
+                    <input
+                    type="date"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                    value={reqForm.lastDate}
+                    onChange={(e) => setReqForm({ ...reqForm, lastDate: e.target.value })}
+                    />
+                </div>
+                {reqForm.trackingType === 'PERIODIC' && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Périodicité (Mois)</label>
+                        <input
+                        type="number"
+                        required
+                        min={1}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                        value={reqForm.periodicityMonths}
+                        onChange={(e) => setReqForm({ ...reqForm, periodicityMonths: parseInt(e.target.value) })}
+                        />
+                    </div>
+                )}
+              </div>
+              
               <div className="flex gap-2 pt-2">
                  <button type="submit" className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex justify-center items-center gap-2">
                     {editingReqId ? <Save size={16}/> : <Plus size={16}/>}
@@ -245,7 +327,8 @@ const Manage: React.FC = () => {
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
                     <tr>
                     <th className="px-6 py-3">Désignation</th>
-                    <th className="px-6 py-3">Dernière Date</th>
+                    <th className="px-6 py-3">Type</th>
+                    <th className="px-6 py-3">Date</th>
                     <th className="px-6 py-3">Fréq.</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
@@ -254,8 +337,19 @@ const Manage: React.FC = () => {
                     {state.requirements.map((req) => (
                     <tr key={req.id} className="bg-white border-b hover:bg-gray-50">
                         <td className="px-6 py-4 font-medium text-gray-900">{req.designation}</td>
+                        <td className="px-6 py-4">
+                            {req.trackingType === 'CONTINUOUS' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    Continu
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                    Périodique
+                                </span>
+                            )}
+                        </td>
                         <td className="px-6 py-4">{req.lastDate}</td>
-                        <td className="px-6 py-4">{req.periodicityMonths}m</td>
+                        <td className="px-6 py-4">{req.trackingType === 'CONTINUOUS' ? '-' : `${req.periodicityMonths}m`}</td>
                         <td className="px-6 py-4 text-right flex justify-end gap-2">
                             <button onClick={() => startEditReq(req)} className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded"><Edit2 size={16}/></button>
                             <button 
@@ -310,6 +404,20 @@ const Manage: React.FC = () => {
                             onChange={(e) => setVerForm({ ...verForm, phone: e.target.value })}
                         />
                     </div>
+                    
+                    <div className="flex items-center gap-2 py-2">
+                        <input
+                            type="checkbox"
+                            id="isInternal"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            checked={verForm.isInternal || false}
+                            onChange={(e) => setVerForm({ ...verForm, isInternal: e.target.checked })}
+                        />
+                        <label htmlFor="isInternal" className="text-sm font-medium text-gray-700">
+                            Organisme / Équipe Interne
+                        </label>
+                    </div>
+
                     <div className="flex gap-2 pt-2">
                         <button type="submit" className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex justify-center items-center gap-2">
                             {editingVerId ? <Save size={16} /> : <Plus size={16} />} 
@@ -331,7 +439,7 @@ const Manage: React.FC = () => {
                     <tr>
                     <th className="px-6 py-3">Organisme</th>
                     <th className="px-6 py-3">Email</th>
-                    <th className="px-6 py-3">Téléphone</th>
+                    <th className="px-6 py-3">Type</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -340,7 +448,17 @@ const Manage: React.FC = () => {
                     <tr key={v.id} className="bg-white border-b hover:bg-gray-50">
                         <td className="px-6 py-4 font-medium text-gray-900">{v.name}</td>
                         <td className="px-6 py-4">{v.email}</td>
-                        <td className="px-6 py-4 text-gray-400">{v.phone || '-'}</td>
+                        <td className="px-6 py-4">
+                            {v.isInternal ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                    Interne
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                    Externe
+                                </span>
+                            )}
+                        </td>
                         <td className="px-6 py-4 text-right flex justify-end gap-2">
                              <button onClick={() => startEditVer(v)} className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded">
                                  <Edit2 size={16}/>

@@ -3,7 +3,10 @@ export interface Verifier {
   name: string;
   email: string;
   phone: string;
+  isInternal: boolean; // Nouveau champ
 }
+
+export type TrackingType = 'PERIODIC' | 'CONTINUOUS';
 
 export interface Requirement {
   id: string;
@@ -12,6 +15,7 @@ export interface Requirement {
   lastDate: string; // Chaîne de date ISO 8601 (AAAA-MM-JJ)
   periodicityMonths: number;
   verifierId: string;
+  trackingType: TrackingType; // Nouveau champ
 }
 
 export type Status = 'RED' | 'ORANGE' | 'GREEN';

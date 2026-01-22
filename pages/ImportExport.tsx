@@ -19,11 +19,13 @@ const ImportExport: React.FC = () => {
           ID: req.id,
           'Désignation': req.designation,
           Description: req.description,
+          'Type de Suivi': req.trackingType === 'CONTINUOUS' ? 'Continu' : 'Périodique',
           'Dernière Date': req.lastDate,
           'Périodicité (Mois)': req.periodicityMonths,
           'Nom Vérificateur': verifier?.name || 'Inconnu',
           'Email Vérificateur': verifier?.email || '',
           'Téléphone Vérificateur': verifier?.phone || '',
+          'Vérificateur Interne': verifier?.isInternal ? 'OUI' : 'NON'
         };
       });
 
@@ -43,11 +45,13 @@ const ImportExport: React.FC = () => {
       {
         'Désignation': 'Exemple de désignation',
         Description: 'Description légale ici',
+        'Type de Suivi': 'Périodique', // ou 'Continu'
         'Dernière Date (AAAA-MM-JJ)': '2023-01-01',
         'Périodicité (Mois)': 12,
         'Nom Vérificateur': 'Bureau Veritas',
         'Email Vérificateur': 'contact@bv.com',
         'Téléphone Vérificateur': '0123456789',
+        'Vérificateur Interne': 'NON', // ou OUI
       },
     ];
     const ws = XLSX.utils.json_to_sheet(headers);
@@ -87,28 +91,42 @@ const ImportExport: React.FC = () => {
             const vName = row['Nom Vérificateur'];
             const vEmail = row['Email Vérificateur'] || '';
             const vPhone = row['Téléphone Vérificateur'] || '';
+            const vIsInternal = (row['Vérificateur Interne'] || '').toString().toUpperCase() === 'OUI';
+
             let vId = '';
             
             if (vName) {
                 const existingV = newVerifiers.find(v => v.name.toLowerCase() === vName.toLowerCase());
                 if (existingV) {
                     vId = existingV.id;
-                    // Mise à jour optionnelle des infos manquantes
+                    // Mise à jour optionnelle
                     if (!existingV.phone && vPhone) existingV.phone = vPhone;
+                    if (vIsInternal) existingV.isInternal = true; // Si marqué interne dans l'import, on met à jour
                 } else {
                     vId = generateId();
-                    newVerifiers.push({ id: vId, name: vName, email: vEmail, phone: vPhone });
+                    newVerifiers.push({ 
+                        id: vId, 
+                        name: vName, 
+                        email: vEmail, 
+                        phone: vPhone,
+                        isInternal: vIsInternal
+                    });
                 }
             }
+
+            // Type de suivi
+            const trackingTypeRaw = (row['Type de Suivi'] || '').toString().toUpperCase();
+            const trackingType = trackingTypeRaw === 'CONTINU' ? 'CONTINUOUS' : 'PERIODIC';
 
             // Créer l'exigence
             newRequirements.push({
                 id: generateId(),
                 designation: row['Désignation'],
                 description: row['Description'] || '',
-                lastDate: String(dateStr).trim(), // Suppose que l'utilisateur entre une chaîne AAAA-MM-JJ.
+                lastDate: String(dateStr).trim(),
                 periodicityMonths: parseInt(row['Périodicité (Mois)'] || '12'),
-                verifierId: vId
+                verifierId: vId,
+                trackingType: trackingType
             });
         });
 
